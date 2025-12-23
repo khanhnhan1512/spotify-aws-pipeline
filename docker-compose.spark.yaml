@@ -1,0 +1,33 @@
+services:
+  spark:
+    image: jupyter/pyspark-notebook
+    ports:
+      - 8888:8888 # Jupyter Notebook
+      - 4040:4040  # Spark Web UI
+    volumes:
+      - ./:/home/jovyan/work/
+    environment:
+      JUPYTER_ENABLE_LAB: yes
+    command: start.sh jupyter lab --NotebookApp.token=''
+
+  spark-master:
+    image: apache/spark:3.5.1
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    environment:
+      SPARK_MODE: master
+    ports:
+      - 7077:7077 # Spark Master Port
+      - 9090:8080 # Spark Master Web UI
+  
+  spark-worker:
+    image: apache/spark:3.5.1
+    container_name: spark-worker-0
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_MEMORY: 1G
+      SPARK_WORKER_CORES: 1
+    depends_on:
+      - spark-master
